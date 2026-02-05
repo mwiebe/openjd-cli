@@ -70,7 +70,9 @@ def read_job_template(template_file: Path, *, supported_extensions: list[str]) -
     return template
 
 
-def read_environment_template(template_file: Path) -> EnvironmentTemplate:
+def read_environment_template(
+    template_file: Path, *, supported_extensions: list[str]
+) -> EnvironmentTemplate:
     """Open a JSON or YAML-formatted file and attempt to parse it into an EnvironmentTemplate object.
     Raises a RuntimeError if the file doesn't exist or can't be opened, and raises a
     DecodeValidationError if its contents can't be parsed into a valid EnvironmentTemplate.
@@ -79,6 +81,8 @@ def read_environment_template(template_file: Path) -> EnvironmentTemplate:
     template_object = read_template(template_file)
 
     # Raises: DecodeValidationError
-    template = decode_environment_template(template=template_object)
+    template = decode_environment_template(
+        template=template_object, supported_extensions=supported_extensions
+    )
 
     return template

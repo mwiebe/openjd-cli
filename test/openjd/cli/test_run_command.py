@@ -1286,3 +1286,27 @@ class TestHelpErrorScenarios:
         ), "Should show second required parameter"
         assert "Second required parameter" in outerr.out, "Should show second parameter description"
         assert "Standard Options:" in outerr.out, "Should show standard options section"
+
+
+def test_step_let_bindings_in_step_env(capsys: pytest.CaptureFixture) -> None:
+    """Test that step-level let bindings are available in stepEnvironment
+    variables, onEnter scripts, and onExit scripts."""
+    template_dir = Path(__file__).parent / "templates"
+    args = [
+        "run",
+        str(template_dir / "step_let_in_step_env.yaml"),
+    ]
+    outerr = run_openjd_cli_main(capsys, args=args, expected_exit_code=0)
+    output = outerr.out
+    # Step-level let: val = 7 * 3 = 21, label = "item_21"
+    # onEnter sees bindings
+    assert "ENTER_VAL:21" in output
+    assert "ENTER_LABEL:item_21" in output
+    # Environment variables resolved from bindings
+    assert "ENV_VAL:21" in output
+    assert "ENV_LABEL:item_21" in output
+    # Task sees bindings
+    assert "TASK_VAL:21" in output
+    # onExit sees bindings
+    assert "EXIT_VAL:21" in output
+    assert "EXIT_LABEL:item_21" in output

@@ -2,6 +2,8 @@
 
 from enum import Enum
 
+from typing import Any, Optional
+
 from openjd.model import Step, TaskParameterSet
 from openjd.model.v2023_09 import Environment
 from openjd.sessions import Session
@@ -47,7 +49,9 @@ class RunTaskAction(SessionAction):
 
     def run(self):
         self._session.run_task(
-            step_script=self._step.script, task_parameter_values=self._parameters
+            step_script=self._step.script,
+            task_parameter_values=self._parameters,
+            resolved_bindings=self._step.resolvedBindings,
         )
 
     def __str__(self):
@@ -58,14 +62,26 @@ class RunTaskAction(SessionAction):
 class EnterEnvironmentAction(SessionAction):
     _environment: Environment
     _id: str
+    _resolved_bindings: Optional[list[dict[str, Any]]]
 
-    def __init__(self, session: Session, environment: Environment, env_id: str):
+    def __init__(
+        self,
+        session: Session,
+        environment: Environment,
+        env_id: str,
+        resolved_bindings: Optional[list[dict[str, Any]]] = None,
+    ):
         super(EnterEnvironmentAction, self).__init__(session)
         self._environment = environment
         self._id = env_id
+        self._resolved_bindings = resolved_bindings
 
     def run(self):
-        self._session.enter_environment(environment=self._environment, identifier=self._id)
+        self._session.enter_environment(
+            environment=self._environment,
+            identifier=self._id,
+            resolved_bindings=self._resolved_bindings,
+        )
 
     def __str__(self):
         return f"Enter Environment '{self._environment.name}'"
@@ -74,15 +90,25 @@ class EnterEnvironmentAction(SessionAction):
 class ExitEnvironmentAction(SessionAction):
     _id: str
     _keep_session_running: bool
+    _resolved_bindings: Optional[list[dict[str, Any]]]
 
-    def __init__(self, session: Session, id: str, keep_session_running: bool):
+    def __init__(
+        self,
+        session: Session,
+        id: str,
+        keep_session_running: bool,
+        resolved_bindings: Optional[list[dict[str, Any]]] = None,
+    ):
         super(ExitEnvironmentAction, self).__init__(session)
         self._id = id
         self._keep_session_running = keep_session_running
+        self._resolved_bindings = resolved_bindings
 
     def run(self):
         self._session.exit_environment(
-            identifier=self._id, keep_session_running=self._keep_session_running
+            identifier=self._id,
+            keep_session_running=self._keep_session_running,
+            resolved_bindings=self._resolved_bindings,
         )
 
     def __str__(self):
