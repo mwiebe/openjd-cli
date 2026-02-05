@@ -178,7 +178,7 @@ def test_read_environment_template_parsingerror(tempfile_extension: str, file_co
 
     mock_args = Path(temp_template.name)
     with pytest.raises(DecodeValidationError) as re:
-        read_environment_template(mock_args)
+        read_environment_template(mock_args, supported_extensions=[])
 
     assert "validation errors for EnvironmentTemplate" in str(re.value)
 

@@ -72,7 +72,7 @@ class LocalSession:
     _action_ended: Event
     _path_mapping_rules: Optional[list[PathMappingRule]]
     _environments: Optional[list[Any]]
-    _environments_entered: list[tuple[EnvironmentType, str]]
+    _environments_entered: list[tuple[EnvironmentType, str, Optional[list[dict[str, Any]]]]]
     _log_handler: LocalSessionLogHandler
     _cleanup_called: bool
 
@@ -197,7 +197,12 @@ class LocalSession:
         LOG.info("Interruption signal recieved.")
         self.cancel()
 
-    def run_environment_enters(self, environments: Optional[list[Any]], type: EnvironmentType):
+    def run_environment_enters(
+        self,
+        environments: Optional[list[Any]],
+        type: EnvironmentType,
+        resolved_bindings: Optional[list[dict[str, Any]]] = None,
+    ):
         """Enter one or more environments in the session."""
         if environments is None:
             return
@@ -211,9 +216,12 @@ class LocalSession:
             env_id = f"{type.name} - {env.name}"
             self._action_ended.clear()
             self._current_action = EnterEnvironmentAction(
-                session=self._openjd_session, environment=env, env_id=env_id
+                session=self._openjd_session,
+                environment=env,
+                env_id=env_id,
+                resolved_bindings=resolved_bindings,
             )
-            self._environments_entered.append((type, env_id))
+            self._environments_entered.append((type, env_id, resolved_bindings))
             self._current_action.run()
             self._action_ended.wait()
             if self.failed:
@@ -234,11 +242,14 @@ class LocalSession:
         failed_action = None
 
         while self._environments_entered and self._environments_entered[-1][0].matches(type):
-            env_id = self._environments_entered.pop()[1]
+            env_type, env_id, bindings = self._environments_entered.pop()
             prev_action_failed = self.failed
             self._action_ended.clear()
             self._current_action = ExitEnvironmentAction(
-                session=self._openjd_session, id=env_id, keep_session_running=keep_session_running
+                session=self._openjd_session,
+                id=env_id,
+                keep_session_running=keep_session_running,
+                resolved_bindings=bindings,
             )
             self._current_action.run()
             self._action_ended.wait()
@@ -349,7 +360,11 @@ class LocalSession:
             task_parameters = StepParameterSpaceIterator(space=step.parameterSpace)
 
         # Enter all the step environments
-        self.run_environment_enters(step.stepEnvironments, EnvironmentType.STEP)
+        self.run_environment_enters(
+            step.stepEnvironments,
+            EnvironmentType.STEP,
+            resolved_bindings=step.resolvedBindings,
+        )
 
         try:
             # Run the tasks

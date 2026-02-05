@@ -168,7 +168,12 @@ def test_localsession_run_success(
         assert patched_run_environment_enters.call_args_list == [
             call(session, None, EnvironmentType.EXTERNAL),
             call(session, sample_job.jobEnvironments, EnvironmentType.JOB),
-            call(session, sample_job.steps[step_index].stepEnvironments, EnvironmentType.STEP),
+            call(
+                session,
+                sample_job.steps[step_index].stepEnvironments,
+                EnvironmentType.STEP,
+                resolved_bindings=sample_job.steps[step_index].resolvedBindings,
+            ),
         ]
         # It should have run one step
         assert patched_run_step.call_args_list == [
@@ -221,6 +226,7 @@ def test_localsession_run_failed(sample_job_and_dirs: tuple, capsys: pytest.Capt
                 session,
                 sample_job.steps[SampleSteps.BadCommand].stepEnvironments,
                 EnvironmentType.STEP,
+                resolved_bindings=sample_job.steps[SampleSteps.BadCommand].resolvedBindings,
             ),
         ]
         session._openjd_session.exit_environment.assert_called_once()  # type: ignore

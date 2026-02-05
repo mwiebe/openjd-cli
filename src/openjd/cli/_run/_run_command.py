@@ -415,7 +415,7 @@ def do_run(args: Namespace) -> OpenJDCliResult:
             filename = Path(env).expanduser()
             try:
                 # Raises: RuntimeError, DecodeValidationError
-                env_template = read_environment_template(filename)
+                env_template = read_environment_template(filename, supported_extensions=extensions)
                 environments.append(env_template)
             except (RuntimeError, DecodeValidationError) as e:
                 return OpenJDCliResult(status="error", message=str(e))
@@ -542,10 +542,14 @@ def do_run(args: Namespace) -> OpenJDCliResult:
     except RuntimeError as rte:
         return OpenJDCliResult(status="error", message=str(rte))
 
-    # Create a RevisionExtensions object with the default specification version and enabled extensions
-    # We use the default v2023_09 since that's what we're currently supporting
+    # Create a RevisionExtensions object with the specification version and the extensions
+    # that the template actually declared (not the full CLI-supported list).
+    # The template's extensions field is the intersection of what the CLI supports and what
+    # the template requested, so we use that to avoid enabling extensions at runtime
+    # that the template's format strings were not parsed with.
     revision_extensions = RevisionExtensions(
-        spec_rev=the_job.revision, supported_extensions=extensions
+        spec_rev=the_job.revision,
+        supported_extensions=the_job.extensions if the_job.extensions else [],
     )
 
     return _run_local_session(

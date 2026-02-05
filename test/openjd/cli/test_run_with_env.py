@@ -62,3 +62,57 @@ def test_run_job_with_env_provide_env_param(capsys):
         assert re.search(
             expected_message_regex, outerr.out
         ), f"Regex r'{expected_message_regex}' not matched in:\n{format_capsys_outerr(outerr)}"
+
+
+def test_run_job_with_env_expr_extension(capsys, tmp_path):
+    """Test that EXPR extension works in environment templates."""
+    # Create a simple job template
+    job_template = tmp_path / "job.yaml"
+    job_template.write_text(
+        """
+specificationVersion: jobtemplate-2023-09
+name: TestJob
+extensions:
+  - FEATURE_BUNDLE_1
+steps:
+  - name: TestStep
+    bash:
+      script: echo "Task ran"
+"""
+    )
+
+    # Create an environment template that uses EXPR
+    env_template = tmp_path / "env.yaml"
+    env_template.write_text(
+        """
+specificationVersion: environment-2023-09
+extensions:
+  - EXPR
+environment:
+  name: ExprEnv
+  script:
+    actions:
+      onEnter:
+        command: echo
+        args:
+          - "Enter {{ 1 + 2 }}"
+      onExit:
+        command: echo
+        args:
+          - "Exit"
+"""
+    )
+
+    outerr = run_openjd_cli_main(
+        capsys,
+        args=[
+            "run",
+            str(job_template),
+            "--environment",
+            str(env_template),
+        ],
+        expected_exit_code=0,
+    )
+
+    # The EXPR extension should evaluate 1 + 2 = 3
+    assert "Enter 3" in outerr.out, f"EXPR not evaluated in env:\n{format_capsys_outerr(outerr)}"
