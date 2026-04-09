@@ -8,9 +8,12 @@ from openjd.model import (
     DocumentType,
     EnvironmentTemplate,
     JobTemplate,
-    document_string_to_object,
-    decode_environment_template,
     decode_job_template,
+    decode_environment_template,
+)
+from openjd._openjd_rs import (
+    decode_job_template_str,
+    decode_environment_template_str,
 )
 
 
@@ -23,66 +26,58 @@ def get_doc_type(filepath: Path) -> DocumentType:
         return DocumentType.YAML
 
 
-def read_template(template_file: Path) -> dict[str, Any]:
-    """Open a JSON or YAML-formatted file and attempt to parse it into a JobTemplate object.
-    Raises a RuntimeError if the file doesn't exist or can't be opened, and raises a
-    DecodeValidationError if its contents can't be parsed into a valid JobTemplate.
-    """
-
+def _read_template_string(template_file: Path) -> tuple[str, DocumentType]:
+    """Read a template file and return (content, format)."""
     if not template_file.exists():
         raise RuntimeError(f"'{str(template_file)}' does not exist.")
-
-    if template_file.is_file():
-        # Raises: RuntimeError
-        filetype = get_doc_type(template_file)
-    else:
+    if not template_file.is_file():
         raise RuntimeError(f"'{str(template_file)}' is not a file.")
+
+    filetype = get_doc_type(template_file)
 
     try:
         template_string = template_file.read_text(encoding="utf-8")
     except OSError as exc:
         raise RuntimeError(f"Could not open file '{str(template_file)}': {str(exc)}")
 
-    try:
-        # Raises: DecodeValidationError
-        template_object = document_string_to_object(
-            document=template_string, document_type=filetype
-        )
-    except DecodeValidationError as exc:
-        raise RuntimeError(f"'{str(template_file)}' failed checks: {str(exc)}")
+    return template_string, filetype
 
-    return template_object
+
+def read_template(template_file: Path) -> dict[str, Any]:
+    """Open a JSON or YAML-formatted file and parse it into a dict.
+    Kept for backward compatibility — prefer read_job_template or read_environment_template.
+    """
+    import json
+    import yaml
+
+    content, filetype = _read_template_string(template_file)
+    try:
+        if filetype == DocumentType.JSON:
+            parsed = json.loads(content)
+        else:
+            parsed = yaml.safe_load(content)
+        if not isinstance(parsed, dict):
+            raise ValueError()
+        return parsed
+    except Exception as exc:
+        raise RuntimeError(f"'{str(template_file)}' failed checks: {str(exc)}")
 
 
 def read_job_template(template_file: Path, *, supported_extensions: list[str]) -> JobTemplate:
-    """Open a JSON or YAML-formatted file and attempt to parse it into a JobTemplate object.
-    Raises a RuntimeError if the file doesn't exist or can't be opened, and raises a
-    DecodeValidationError if its contents can't be parsed into a valid JobTemplate.
-    """
-    # Raises RuntimeError
-    template_object = read_template(template_file)
-
-    # Raises: DecodeValidationError
-    template = decode_job_template(
-        template=template_object, supported_extensions=supported_extensions
-    )
-
-    return template
+    """Open a JSON or YAML-formatted file and decode it as a JobTemplate."""
+    content, filetype = _read_template_string(template_file)
+    try:
+        return decode_job_template_str(content, filetype)
+    except DecodeValidationError as exc:
+        raise RuntimeError(f"'{str(template_file)}' failed checks: {str(exc)}")
 
 
 def read_environment_template(
     template_file: Path, *, supported_extensions: list[str]
 ) -> EnvironmentTemplate:
-    """Open a JSON or YAML-formatted file and attempt to parse it into an EnvironmentTemplate object.
-    Raises a RuntimeError if the file doesn't exist or can't be opened, and raises a
-    DecodeValidationError if its contents can't be parsed into a valid EnvironmentTemplate.
-    """
-    # Raises RuntimeError
-    template_object = read_template(template_file)
-
-    # Raises: DecodeValidationError
-    template = decode_environment_template(
-        template=template_object, supported_extensions=supported_extensions
-    )
-
-    return template
+    """Open a JSON or YAML-formatted file and decode it as an EnvironmentTemplate."""
+    content, filetype = _read_template_string(template_file)
+    try:
+        return decode_environment_template_str(content, filetype)
+    except DecodeValidationError as exc:
+        raise RuntimeError(f"'{str(template_file)}' failed checks: {str(exc)}")

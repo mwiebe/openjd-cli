@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Optional
 
 from openjd.model import Step, TaskParameterSet
-from openjd.model.v2023_09 import Environment
+from openjd.model import Environment
 from openjd.sessions import Session
 
 

@@ -33,7 +33,7 @@ from openjd.model import (
     StepDependencyGraph,
     StepParameterSpaceIterator,
     ParameterValue,
-    ParameterValueType,
+    JobParameterType,
     RevisionExtensions,
     SpecificationRevision,
     TaskParameterSet,
@@ -300,7 +300,7 @@ def _validate_task_params(step: Step, task_params: list[dict[str, str]]) -> None
         if not (extra_names or missing_names):
             params = {
                 name: ParameterValue(
-                    type=ParameterValueType(
+                    type=JobParameterType(
                         step.parameterSpace.taskParameterDefinitions[name].type  # type: ignore
                     ),
                     value=parameter_set[name],
@@ -489,7 +489,7 @@ def do_run(args: Namespace) -> OpenJDCliResult:
             task_parameter_values: Iterable[TaskParameterSet] = [
                 {
                     name: ParameterValue(
-                        type=ParameterValueType(
+                        type=JobParameterType(
                             selected_step.parameterSpace.taskParameterDefinitions[name].type  # type: ignore
                         ),
                         value=value,

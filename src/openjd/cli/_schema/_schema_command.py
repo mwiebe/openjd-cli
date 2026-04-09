@@ -48,9 +48,9 @@ def do_get_schema(args: Namespace) -> OpenJDCliResult:
 
     Template: Union[type[JobTemplate], type[EnvironmentTemplate]]
     if args.version == TemplateSpecificationVersion.JOBTEMPLATE_v2023_09:
-        from openjd.model.v2023_09 import JobTemplate as Template
+        from openjd.model import JobTemplate as Template
     elif args.version == TemplateSpecificationVersion.ENVIRONMENT_v2023_09:
-        from openjd.model.v2023_09 import EnvironmentTemplate as Template
+        from openjd.model import EnvironmentTemplate as Template
     else:
         return OpenJDCliResult(
             status="error", message=f"ERROR: Cannot generate schema for version '{args.version}'."
